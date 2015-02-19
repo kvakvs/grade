@@ -1,3 +1,4 @@
+### Erlang template
 .eunit
 deps
 *.o
@@ -8,3 +9,10 @@ ebin
 rel/example_project
 .concrete/DEV_MODE
 .rebar
+
+
+
+### IDE stuff
+
+.idea
+grade.iml
