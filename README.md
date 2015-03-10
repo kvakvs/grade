@@ -15,6 +15,7 @@ A tool which extracts static dependency and call data from xref, and runtime cal
 * features:
     * selectable start/end points for trace
     * data: call chain, duration, messages
-    * Tracing from an external node by injecting a worker process
-    * Tracing to a file or via port
+    * (configurable) Tracing from an external node by injecting a worker process
+    * (configurable) Tracing to a file or via port
+    * (configurable) Backend to use: neo4j or inmemory digraph
     * Builtin web server to serve static website with d3
