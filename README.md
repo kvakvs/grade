@@ -4,11 +4,11 @@ A tool which extracts static dependency and call data from xref, and runtime cal
 ## TODO and requested featurees
 
 * which tracer should we base our tracing on
-    * -ttb-
-    * -fire-
-    * -redbug-
+    * ~~ttb~~
+    * ~~fire~~
+    * ~~redbug~~
     * erlang:trace with dbg trace port
-    * -fprof with io servers-
+    * ~~fprof with io servers~~
 * display library
     * d3
     * ??? there was something d3js-wrapper
