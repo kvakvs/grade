@@ -4,17 +4,17 @@ A tool which extracts static dependency and call data from xref, and runtime cal
 ## TODO and requested featurees
 
 * which tracer should we base our tracing on
-** -ttb-
-** -fire-
-** -redbug-
-** erlang:trace with dbg trace port
-** -fprof with io servers-
+    * -ttb-
+    * -fire-
+    * -redbug-
+    * erlang:trace with dbg trace port
+    * -fprof with io servers-
 * display library
-** d3
-** ??? there was something d3js-wrapper
+    * d3
+    * ??? there was something d3js-wrapper
 * features:
-** selectable start/end points for trace
-** data: call chain, duration, messages
-** Tracing from an external node by injecting a worker process
-** Tracing to a file or via port
-** Builtin web server to serve static website with d3
+    * selectable start/end points for trace
+    * data: call chain, duration, messages
+    * Tracing from an external node by injecting a worker process
+    * Tracing to a file or via port
+    * Builtin web server to serve static website with d3
