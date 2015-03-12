@@ -1,15 +1,17 @@
 {application, grade, [
-	{description, ""},
-	{vsn, "0.1.0"},
-	{id, "git"},
-	{modules, []},
-	{registered, []},
-	{applications, [
-		kernel,
-		stdlib,
-    neo4j,
-    erl_csi
-	]},
-	{mod, {grade_app, []}},
-	{env, []}
+        {description, ""},
+        {vsn, "0.1.0"},
+        {id, "git"},
+        {modules, []},
+        {registered, []},
+        {applications, [ kernel,
+                         stdlib
+                       ]},
+        {mod, {grade_app, []}},
+        {env, [ % no DNS names only numeric IP as string
+               {host, "127.0.0.1"},
+          %%  set this to 0 for automatic port assignment. Read assigned port
+          %% from application:get_env(tx, port) after app has started
+               {port, 8500}
+              ]}
 ]}.
