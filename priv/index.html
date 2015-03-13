@@ -1,1 +1,41 @@
-hello
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Grade: Code visualizer</title>
+  <link rel="stylesheet" href="css/bootstrap-3.2.0.css">
+  <link rel="stylesheet" href="css/grade.css">
+  <script src="js/react.js"></script>
+  <script src="js/JSXTransformer.js"></script>
+  <script src="js/jquery-1.11.2.min.js"></script>
+  <script type="text/jsx" src="js/grade_index.jsx"></script>
+</head>
+<body><div class="container-fluid">
+
+<div class="row">
+  <div class="col-lg-10 col-lg-offset-1">
+    <h1>Grade: Code visualizer</h1>
+
+    <h2>About</h2>
+
+    <p>This tool is able to collect static dependency data from your code using
+      standard xref library. Since static data is incomplete, you can improve
+      it by collecting trace data on some calls (for example your tests). Trace
+      data makes it possible to capture erlang:apply (and M:F()) calls, spawns
+      and link code pieces according to captured messages.</p>
+
+    <h2>Getting started</h2>
+
+    <p>Before you are able to see your code graph, please take a moment to
+      populate graph data from static xref (requires access to compiled BEAM
+      files) or from trace data (requires access to a running node).</p>
+
+    <p>
+      <span id="appsList">apps_list</span>
+      <input class="btn btn-primary" type="button" value="Import Application">
+    </p>
+  </div>
+</div>
+
+</div></body>
+</html>

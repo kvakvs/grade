@@ -7,7 +7,7 @@
 -module(grade_util).
 
 %% API
--export([unquote/1, as_string/1, as_binary/1]).
+-export([unquote/1, as_string/1, as_binary/1, fmt/2, list_nodes_and_apps/0]).
 
 %% @private
 %% @doc Unquote a URL encoded string.
@@ -61,3 +61,22 @@ as_binary(X) when is_binary(X) -> X;
 as_binary(X) when is_list(X) -> list_to_binary(X);
 as_binary(X) when is_integer(X) -> as_binary(integer_to_list(X));
 as_binary(X) when is_atom(X) -> atom_to_binary(X, latin1).
+
+fmt(Format, Args) ->
+  lists:flatten(io_lib:format(Format, Args)).
+
+%% @doc Scans all currently visible nodes and requests apps list from each node
+list_nodes_and_apps() ->
+  LocalApps0 = application:which_applications(),
+  LocalApps = lists:map(fun(AppDescr) -> element(1, AppDescr) end, LocalApps0),
+  [{nodes, [{local_erlang_node, LocalApps}]
+           ++ [{N, list_apps_on_node(N)} || N <- nodes()]
+   }].
+
+list_apps_on_node(N) ->
+  case rpc:call(N, application, which_applications, []) of
+    {badrpc, _E} -> [];
+    L ->
+      %% Returned L contains tuples [{stdlib,"ERTS  CXC 138 10","1.18.3"},...]
+      lists:map(fun(AppDescr) -> element(1, AppDescr) end, L)
+  end.

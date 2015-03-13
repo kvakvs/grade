@@ -1,6 +1,6 @@
 PROJECT = grade
 
-#DEPS = neo4j
+DEPS = jsx
 
 include erlang.mk
 
