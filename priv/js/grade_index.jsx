@@ -8,6 +8,7 @@ var AppsDropdown = React.createClass({
     return {nodes: response.nodes};
   },
 
+  // Create dropbox with applications per node
   render: function() {
     var items = [];
     var nodes = this.props.nodes;
@@ -18,7 +19,7 @@ var AppsDropdown = React.createClass({
         var apps = this.props.nodes[n];
         for(var app in apps) {
           if (apps.hasOwnProperty(app)) {
-            items.push(<option value={n + "." + apps[app]}>{apps[app]}</option>);
+            items.push(<option value={apps[app] + '@' + n}>{apps[app]}</option>);
           }
         }
       }

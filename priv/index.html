@@ -30,9 +30,28 @@
       populate graph data from static xref (requires access to compiled BEAM
       files) or from trace data (requires access to a running node).</p>
 
-    <p>
-      <span id="appsList">apps_list</span>
-      <input class="btn btn-primary" type="button" value="Import Application">
+    <div class="row">
+      <div class="col-lg-5">
+        <span id="appsList">apps_list</span>
+        <input class="btn btn-primary" type="button" value="Import application">
+      </div>
+
+      <div class="col-lg-7">
+        <p>Import button spawns process named <code>'grade_imp'</code>, which
+          prints progress on screen. If anything goes wrong you can
+          <code>exit(whereis(grade_imp), kill).</code> in shell or just wait for
+          it to finish.</p>
+        <p>You can run this manually, if you wish:
+          <code>grade_populate:start().</code> and then
+          <code>grade_populate:add_app(your_app_name).</code></p>
+      </div>
+    </div>
+
+    <h2>State</h2>
+
+    <p>Graph now contains: 0 modules, 0 functions and 0 relations (calls)</p>
+
+    <p><input class="btn btn-warning" disabled="disabled" value="Clear all" />
     </p>
   </div>
 </div>
