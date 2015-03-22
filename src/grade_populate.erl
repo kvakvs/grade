@@ -2,53 +2,59 @@
 
 %% API
 -export([add_app/2,
-  add_mod/2,
-  start/0
-  , add_fun/2]).
+        add_mod/2,
+        start/0
+        ]).
 
 -define(XREF, grade).
 
+%% @doc NOTE: Digraph creates ets tables, which will be owned by current process and
+%% be destroyed if you crash (exception in shell for example) or end the process.
 start() ->
   xref:start(?XREF),
   %%xref:add_release(?XREF, Dir),
-  xref:add_directory(?XREF, "."),
+  xref:add_application(?XREF, "ebin"),
   ets:new(?MODULE, [named_table, ordered_set, public]),
   grade_db:new(digraph).
 
 
 %% @doc Query xref about all modules in app, return modified database with new nodes
-add_app(Db0, App) ->
+add_app(Db, App) ->
   io:format("[grade] xref for app ~s~n", [App]),
-  Db1 = grade_db:create_node(Db0, [{name, App}]),
+  AppNode = grade_db:create_node(Db, [{name, App}, {type, 'app'}]),
 
   {ok, Modules} = xref:q(?XREF, "(Mod) '" ++ atom_to_list(App) ++ "'"),
+  lists:foreach(
+    fun(MFold) ->
+      ModNode = add_mod(Db, MFold),
+      grade_db:create_edge(Db, AppNode, ModNode, app_contains)
+    end, Modules).
 
-  %% Remember to return modified Db
-  lists:foldl(fun(M, DbFold) -> add_mod(DbFold, M) end, Db1, Modules).
 
-
-%% @doc Query xref about module, return modified database with new nodes/edges
+%% @doc Query xref about module, returns graph node for module
 add_mod(Db0, Module) ->
   io:format("[grade] xref for mod ~s~n", [Module]),
-  Db1 = grade_db:create_node(Db0, [{name, Module}]),
+  ModuleNode = grade_db:create_node(Db0, [{name, Module}, {type, 'mod'}]),
 
   {ok, Funs} = xref:q(?XREF, "'" ++ atom_to_list(Module) ++ "' : Mod * F"),
+  lists:foreach(fun(MFA) -> add_fun(Db0, ModuleNode, MFA) end, Funs),
+  ModuleNode.
 
-  %% Remember to return modified Db
-  lists:foldl(fun(F, DbFold) -> add_fun(DbFold, F) end, Db1, Funs).
 
-
-%% @doc Query xref about function, return modified database with new nodes/edges
-add_fun(Db0, Fun) ->
-  FunName = fun_name(F, A),
-  ModName = atom_to_binary(M, utf8),
-  Node = neo4j:create_node(Neo, {[ {<<"name">>, FunName}
-    , {<<"mfa">>, <<ModName/binary, ":", FunName/binary>>}]}),
-  neo4j:create_relationship(Module, Node, <<"implements">>),
-  ets:insert(?MODULE, {{M, F, A}, Node}),
-  Db.
+%% @doc Query xref about function, returns graph node for function
+add_fun(Db, ModuleNode, {M, F, A}) ->
+  FunName = fun_name(M, F, A),
+  ModName = grade_util:as_binary(M),
+  FunNode = grade_db:create_node(Db, [{name, FunName},
+                                      {type, 'fun'},
+                                      {mfa, <<ModName/binary, ":", FunName/binary>>}
+                                     ]),
+  _Edge = grade_db:create_edge(Db, ModuleNode, FunNode, implements),
+  ets:insert(?MODULE, {{M, F, A}, FunNode}),
+  FunNode.
 
 %% @private
-fun_name(F, A) ->
-  AB = grade_util:as_binary(A),
-  <<(atom_to_binary(F, utf8))/binary, "/", AB/binary>>.
+fun_name(_M, F, A) ->
+  F1 = grade_util:as_binary(F),
+  A1 = grade_util:as_binary(A),
+  <<F1/binary, "/", A1/binary>>.
