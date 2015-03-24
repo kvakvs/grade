@@ -40,9 +40,8 @@ create_edge({?digraph, Dg}, N1, N2, Name) ->
   digraph:add_edge(Dg, N1, N2, Name).
 
 merge_edge({?neo4j, Conn}, N1, Rel, N2, Data) ->
-  Query = [{<<"MERGE (f1:function {name: {n1}.name, mfa: {n1}.mfa}) -[:"
-            , (grade_util:as_binary(Rel))/binary
-            , "] -> (f2:function {name: {n2}.name, mfa: {n2}.mfa})\n",
+  Query = [{<<"MERGE (f1:function {name: {n1}.name, mfa: {n1}.mfa})\n",
+              "MERGE (f2:function {name: {n2}.name, mfa: {n2}.mfa})\n",
               "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
            , {[{<<"n1">>, N1}, {<<"n2">>, N2}, {<<"trace">>, Data}]}
            , [<<"REST">>]}],
