@@ -262,7 +262,7 @@
 
         var query = 'MATCH (:application {name: "' + app_name + '"})-[:contains]->(:module {name: "' + module_name + '"})-[:implements]->(f:function)\n'
                     +
-                    'RETURN f ORDER BY f.mfa';
+                    'RETURN f ORDER BY f.desc';
         var params = {app_name: app_name, mname: module_name};
 
         $.ajax({
@@ -276,9 +276,9 @@
                  success: function (response) {
                    node.children = [];
                    _.each(response.data, function(element){
-                      var mfa = element[0].data.mfa;
+                      var desc = element[0].data.desc;
                      var id = element[0].metadata.id;
-                     node.children.push({name: mfa, size: id, id: ++i, label: "function"});
+                     node.children.push({name: desc, size: id, id: ++i, label: "function"});
                    });
                    circle.style('fill', '#fff');
 
@@ -287,10 +287,10 @@
                });
       } else if (node.label === 'function'){
         circle.style('fill', 'green');
-        var mfa = node.name;
+        var desc = node.name;
 
-        var query = 'MATCH (f1:function {mfa: "' + mfa + '"})-[:calls]->(f:function)\n'+
-                    'WHERE not f.mfa = f1.mfa RETURN f ORDER BY f.mfa';
+        var query = 'MATCH (f1:function {desc: "' + desc + '"})-[:calls]->(f:function)\n'+
+                    'WHERE not f.desc = f1.desc RETURN f ORDER BY f.desc';
 
         $.ajax({
                  url:     "http://localhost:7474/db/data/cypher",
@@ -304,9 +304,9 @@
                    circle.style('fill', '#fff');
                    node.children = [];
                    _.each(response.data, function(element){
-                      var mfa = element[0].data.mfa;
+                      var desc = element[0].data.desc;
                      var id = element[0].metadata.id;
-                     node.children.push({name: mfa, size: id, id: ++i, label: "function"});
+                     node.children.push({name: desc, size: id, id: ++i, label: "function"});
                    });
 
                    update(node);
