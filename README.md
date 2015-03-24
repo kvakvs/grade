@@ -1,6 +1,15 @@
 # grade
 A tool which extracts static dependency and call data from xref, and runtime call data (todo) from your Erlang application and stores as set of nodes and edges in neo4j database. Allows (todo) to display various code stats, call trees, call paths, trace trees and such.
 
+## Slowstart
+```
+Db = grade_db:new(neo4j).
+xref:start(grade).
+grade_populate(Db, jiffy).
+grade_trace:apply({file, "trace"}, jiffy, encode, [{[{name, app_name}, {type, application}, {desc, description}]}]).
+grade_trace:consume({file, "trace"}, Db).
+```
+
 ## TODO and requested featurees
 
 * which tracer should we base our tracing on
