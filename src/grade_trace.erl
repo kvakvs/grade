@@ -86,8 +86,8 @@ merge_edge(Pid, {Ms, S, Us}, State, Relationship, M, F, Arity, Props) ->
           , {trace_id, State#state.trace_id}
             | Props
           ],
-  grade_populate:merge_edge(State#state.db,
-                            State#state.current_mfa,
-                            Relationship,
-                            {M, F, Arity},
-                            Data).
+  grade_db:merge_edge(State#state.db,
+                      grade_populate:mfa_props(State#state.current_mfa),
+                      Relationship,
+                      grade_populate:mfa_props({M, F, Arity}),
+                      Data).

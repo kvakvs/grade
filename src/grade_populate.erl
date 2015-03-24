@@ -6,6 +6,8 @@
         start/0
         ]).
 
+-export([mfa_props/1]).
+
 -define(XREF, grade).
 
 %% @doc NOTE: Digraph creates ets tables, which will be owned by current process and

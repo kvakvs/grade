@@ -40,21 +40,23 @@ create_edge({?digraph, Dg}, N1, N2, Name) ->
   digraph:add_edge(Dg, N1, N2, Name).
 
 merge_node({?neo4j, Conn}, Node) ->
-  {type, Type} = lists:keyfind(type, 1, Node),
-  Query = [{<<"MERGE (node:", (grade_util:as_binary(Type))/binary,
-              " {name: {node}.name, type: {node}.type})">>
-           , {[{<<"node">>, {as_binary(Node)}}]}
-           , [<<"REST">>]}],
-  T = neo4j:transaction_begin(Conn, Query),
+  T = neo4j:transaction_begin(Conn, merge_node_trans(Node)),
   neo4j:transaction_commit(T).
 
+merge_node_trans(Node) ->
+  [ {merge_node_query(Node, <<"node">>, <<"f1">>)
+  , {[{<<"node">>, {as_binary(Node)}}]}
+  , [<<"REST">>]}].
+
+merge_node_query(Node, VarName, NodeVarName) ->
+  {type, Type} = lists:keyfind(type, 1, Node),
+  <<"MERGE (", NodeVarName/binary, ":", (grade_util:as_binary(Type))/binary,
+    " {name: {", VarName/binary, "}.name, type: {", VarName/binary, "}.type, desc: {", VarName/binary, "}.desc})">>.
 
 merge_edge({?neo4j, Conn}, N1, Rel, N2, Data) ->
-  {type, T1} = lists:keyfind(type, 1, N1),
-  {type, T2} = lists:keyfind(type, 1, N2),
-  Query = [{<<"MERGE (f1:", (grade_util:as_binary(T1))/binary, " {name: {n1}.name, desc: {n1}.desc})\n",
-              "MERGE (f2:", (grade_util:as_binary(T2))/binary, " {name: {n2}.name, desc: {n2}.desc})\n",
-              "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
+  Query = [{<<(merge_node_query(N1, <<"n1">>, <<"f1">>))/binary, "\n",
+            (merge_node_query(N2, <<"n2">>, <<"f2">>))/binary, "\n",
+            "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
            , {[ {<<"n1">>,    {as_binary(N1)}}
               , {<<"n2">>,    {as_binary(N2)}}
               , {<<"trace">>, {as_binary(Data)}}
