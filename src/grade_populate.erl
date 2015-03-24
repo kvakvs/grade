@@ -58,7 +58,12 @@ add_fun(Db, ModuleNode, {M, F, A} = MFA) ->
 
 %% @doc Add a traced call to the graph
 merge_edge(Db, Caller, Relationship, Callee, TraceData) ->
-  grade_db:merge_edge(Db, node_format(Caller), Relationship, node_format(Callee), TraceData).
+  grade_db:merge_edge( Db
+                     , node_format(Caller)
+                     , Relationship
+                     , node_format(Callee)
+                     , {[{grade_util:as_binary(P), grade_util:as_binary(V)}
+                        || {P, V} <- TraceData]}).
 
 %% @private
 node_format({M, F, A}) ->
