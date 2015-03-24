@@ -25,8 +25,7 @@ add_app(Db, App) ->
   io:format("[grade] xref for app ~s~n", [App]),
   case code:lib_dir(App) of
     {error, Reason} -> io:format("~p", [{error, Reason}]);
-    Dir             ->
-      xref:add_application(?XREF, Dir)
+    Dir             -> xref:add_application(?XREF, Dir)
   end,
   io:format("[grade] xref for app ~s~n", [App]),
   AppNode = grade_db:create_node(Db, [{name, App}, {type, 'app'}]),
@@ -50,18 +49,18 @@ add_mod(Db0, Module) ->
 
 
 %% @doc Query xref about function, returns graph node for function
-add_fun(Db, ModuleNode, {M, F, A} = MFA) ->
+add_fun(Db, ModuleNode, MFA) ->
   FunNode = grade_db:create_node(Db, node_format(MFA)),
   _Edge = grade_db:create_edge(Db, ModuleNode, FunNode, implements),
-  ets:insert(?MODULE, {{M, F, A}, FunNode}),
+  %ets:insert(?MODULE, {{M, F, A}, FunNode}),
   FunNode.
 
 %% @doc Add a traced call to the graph
 merge_edge(Db, Caller, Relationship, Callee, TraceData) ->
   grade_db:merge_edge( Db
-                     , node_format(Caller)
+                     , {node_format(Caller)}
                      , Relationship
-                     , node_format(Callee)
+                     , {node_format(Callee)}
                      , {[{grade_util:as_binary(P), grade_util:as_binary(V)}
                         || {P, V} <- TraceData]}).
 
@@ -73,4 +72,4 @@ node_format({M, F, A}) ->
      , ":", (grade_util:as_binary(F))/binary
      , "/", (grade_util:as_binary(A))/binary>>}
   ],
-  {[{grade_util:as_binary(P), grade_util:as_binary(V)} || {P, V} <- Plist]}.
+  [{grade_util:as_binary(P), grade_util:as_binary(V)} || {P, V} <- Plist].
