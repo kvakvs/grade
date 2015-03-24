@@ -22,7 +22,6 @@ start() ->
 
 %% @doc Query xref about all modules in app, return modified database with new nodes
 add_app(Db, App) ->
-  io:format("[grade] xref for app ~s~n", [App]),
   case code:lib_dir(App) of
     {error, Reason} -> io:format("~p", [{error, Reason}]);
     Dir             -> xref:add_application(?XREF, Dir)
@@ -31,12 +30,19 @@ add_app(Db, App) ->
   AppProps = [{name, App}, {type, application}, {desc, App}],
   %grade_db:merge_node(Db, AppProps),
 
-  {ok, Modules} = xref:q(?XREF, "(Mod) '" ++ atom_to_list(App) ++ "'"),
+  NameStr = "'" ++ atom_to_list(App) ++ "'",
+  {ok, Modules} = xref:q(?XREF, "(Mod) " ++ NameStr),
+  {ok, Calls}   = xref:q(?XREF, "E ||| " ++ NameStr),
   lists:foreach(
     fun(MFold) ->
       ModNode = add_mod(Db, MFold),
       grade_db:merge_edge(Db, AppProps, contains, ModNode, [])
-    end, Modules).
+    end, Modules),
+  lists:foreach(
+    fun({FromMFA, ToMFA}) ->
+        grade_db:merge_edge(Db, mfa_props(FromMFA), calls, mfa_props(ToMFA),
+                            [{source, xref}])
+    end, Calls).
 
 
 %% @doc Query xref about module, returns graph node for module
