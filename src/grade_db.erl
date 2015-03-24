@@ -5,7 +5,7 @@
 -module(grade_db).
 
 %% API
--export([new/1, create_node/2, create_edge/4, merge_edge/5]).
+-export([new/1, create_node/2, create_edge/4, merge_edge/5, merge_node/2]).
 
 -define(BASE_URI, <<"http://localhost:7474/db/data/">>).
 -define(digraph, grade_db_digraph). % atom tag for digraph storage
@@ -39,14 +39,31 @@ create_edge({?neo4j, _}, N1, N2, Name) ->
 create_edge({?digraph, Dg}, N1, N2, Name) ->
   digraph:add_edge(Dg, N1, N2, Name).
 
-merge_edge({?neo4j, Conn}, N1, Rel, N2, Data) ->
-  Query = [{<<"MERGE (f1:function {name: {n1}.name, mfa: {n1}.mfa}) -[:"
-            , (grade_util:as_binary(Rel))/binary
-            , "] -> (f2:function {name: {n2}.name, mfa: {n2}.mfa})\n",
-              "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
-           , {[{<<"n1">>, N1}, {<<"n2">>, N2}, {<<"trace">>, Data}]}
-           , [<<"REST">>]}],
-  io:format("Q: ~p~n", [Query]),
-  T = neo4j:transaction_begin(Conn, Query),
-  io:format("T: ~p~n", [T]),
+merge_node({?neo4j, Conn}, Node) ->
+  T = neo4j:transaction_begin(Conn, merge_node_trans(Node)),
   neo4j:transaction_commit(T).
+
+merge_node_trans(Node) ->
+  [ {merge_node_query(Node, <<"node">>, <<"f1">>)
+  , {[{<<"node">>, {as_binary(Node)}}]}
+  , [<<"REST">>]}].
+
+merge_node_query(Node, VarName, NodeVarName) ->
+  {type, Type} = lists:keyfind(type, 1, Node),
+  <<"MERGE (", NodeVarName/binary, ":", (grade_util:as_binary(Type))/binary,
+    " {name: {", VarName/binary, "}.name, type: {", VarName/binary, "}.type, desc: {", VarName/binary, "}.desc})">>.
+
+merge_edge({?neo4j, Conn}, N1, Rel, N2, Data) ->
+  Query = [{<<(merge_node_query(N1, <<"n1">>, <<"f1">>))/binary, "\n",
+            (merge_node_query(N2, <<"n2">>, <<"f2">>))/binary, "\n",
+            "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
+           , {[ {<<"n1">>,    {as_binary(N1)}}
+              , {<<"n2">>,    {as_binary(N2)}}
+              , {<<"trace">>, {as_binary(Data)}}
+              ]}
+           , [<<"REST">>]}],
+  T = neo4j:transaction_begin(Conn, Query),
+  neo4j:transaction_commit(T).
+
+as_binary(Props) ->
+  [{grade_util:as_binary(P), grade_util:as_binary(V)} || {P, V} <- Props].
