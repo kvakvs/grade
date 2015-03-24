@@ -5,7 +5,7 @@
 -module(grade_db).
 
 %% API
--export([new/1, create_node/2, create_edge/4, merge_edge/5]).
+-export([new/1, create_node/2, create_edge/4, merge_edge/5, merge_node/2]).
 
 -define(BASE_URI, <<"http://localhost:7474/db/data/">>).
 -define(digraph, grade_db_digraph). % atom tag for digraph storage
@@ -39,11 +39,29 @@ create_edge({?neo4j, _}, N1, N2, Name) ->
 create_edge({?digraph, Dg}, N1, N2, Name) ->
   digraph:add_edge(Dg, N1, N2, Name).
 
-merge_edge({?neo4j, Conn}, N1, Rel, N2, Data) ->
-  Query = [{<<"MERGE (f1:function {name: {n1}.name, mfa: {n1}.mfa})\n",
-              "MERGE (f2:function {name: {n2}.name, mfa: {n2}.mfa})\n",
-              "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
-           , {[{<<"n1">>, N1}, {<<"n2">>, N2}, {<<"trace">>, Data}]}
+merge_node({?neo4j, Conn}, Node) ->
+  {type, Type} = lists:keyfind(type, 1, Node),
+  Query = [{<<"MERGE (node:", (grade_util:as_binary(Type))/binary,
+              " {name: {node}.name, type: {node}.type})">>
+           , {[{<<"node">>, {as_binary(Node)}}]}
            , [<<"REST">>]}],
   T = neo4j:transaction_begin(Conn, Query),
   neo4j:transaction_commit(T).
+
+
+merge_edge({?neo4j, Conn}, N1, Rel, N2, Data) ->
+  {type, T1} = lists:keyfind(type, 1, N1),
+  {type, T2} = lists:keyfind(type, 1, N2),
+  Query = [{<<"MERGE (f1:", (grade_util:as_binary(T1))/binary, " {name: {n1}.name, desc: {n1}.desc})\n",
+              "MERGE (f2:", (grade_util:as_binary(T2))/binary, " {name: {n2}.name, desc: {n2}.desc})\n",
+              "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
+           , {[ {<<"n1">>,    {as_binary(N1)}}
+              , {<<"n2">>,    {as_binary(N2)}}
+              , {<<"trace">>, {as_binary(Data)}}
+              ]}
+           , [<<"REST">>]}],
+  T = neo4j:transaction_begin(Conn, Query),
+  neo4j:transaction_commit(T).
+
+as_binary(Props) ->
+  [{grade_util:as_binary(P), grade_util:as_binary(V)} || {P, V} <- Props].

@@ -6,8 +6,6 @@
         start/0
         ]).
 
--export([merge_edge/5]).
-
 -define(XREF, grade).
 
 %% @doc NOTE: Digraph creates ets tables, which will be owned by current process and
@@ -28,48 +26,37 @@ add_app(Db, App) ->
     Dir             -> xref:add_application(?XREF, Dir)
   end,
   io:format("[grade] xref for app ~s~n", [App]),
-  AppNode = grade_db:create_node(Db, [{name, App}, {type, 'app'}]),
+  AppProps = [{name, App}, {type, 'app'}, {desc, App}],
+  %grade_db:merge_node(Db, AppProps),
 
   {ok, Modules} = xref:q(?XREF, "(Mod) '" ++ atom_to_list(App) ++ "'"),
   lists:foreach(
     fun(MFold) ->
       ModNode = add_mod(Db, MFold),
-      grade_db:create_edge(Db, AppNode, ModNode, app_contains)
+      grade_db:merge_edge(Db, AppProps, app_contains, ModNode, [])
     end, Modules).
 
 
 %% @doc Query xref about module, returns graph node for module
 add_mod(Db0, Module) ->
   io:format("[grade] xref for mod ~s~n", [Module]),
-  ModuleNode = grade_db:create_node(Db0, [{name, Module}, {type, 'mod'}]),
+  Props = [{name, Module}, {type, 'mod'}, {desc, Module}],
+  grade_db:merge_node(Db0, Props),
 
   {ok, Funs} = xref:q(?XREF, "'" ++ atom_to_list(Module) ++ "' : Mod * F"),
-  lists:foreach(fun(MFA) -> add_fun(Db0, ModuleNode, MFA) end, Funs),
-  ModuleNode.
-
+  lists:foreach(fun(MFA) -> add_fun(Db0, Props, MFA) end, Funs),
+  Props.
 
 %% @doc Query xref about function, returns graph node for function
 add_fun(Db, ModuleNode, MFA) ->
-  FunNode = grade_db:create_node(Db, node_format(MFA)),
-  _Edge = grade_db:create_edge(Db, ModuleNode, FunNode, implements),
+  grade_db:merge_edge(Db, ModuleNode, implements, mfa_props(MFA), []).
   %ets:insert(?MODULE, {{M, F, A}, FunNode}),
-  FunNode.
-
-%% @doc Add a traced call to the graph
-merge_edge(Db, Caller, Relationship, Callee, TraceData) ->
-  grade_db:merge_edge( Db
-                     , {node_format(Caller)}
-                     , Relationship
-                     , {node_format(Callee)}
-                     , {[{grade_util:as_binary(P), grade_util:as_binary(V)}
-                        || {P, V} <- TraceData]}).
 
 %% @private
-node_format({M, F, A}) ->
-  Plist = [ {name, F}
-   , {type, 'fun'}
-   , {mfa, <<(grade_util:as_binary(M))/binary
-     , ":", (grade_util:as_binary(F))/binary
-     , "/", (grade_util:as_binary(A))/binary>>}
-  ],
-  [{grade_util:as_binary(P), grade_util:as_binary(V)} || {P, V} <- Plist].
+mfa_props({M, F, A}) ->
+  [ {name, F}
+  , {type, 'fun'}
+  , {desc, <<(grade_util:as_binary(M))/binary
+            , ":", (grade_util:as_binary(F))/binary
+            , "/", (grade_util:as_binary(A))/binary>>}
+  ].
