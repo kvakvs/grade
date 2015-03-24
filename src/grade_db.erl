@@ -45,7 +45,5 @@ merge_edge({?neo4j, Conn}, N1, Rel, N2, Data) ->
               "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
            , {[{<<"n1">>, N1}, {<<"n2">>, N2}, {<<"trace">>, Data}]}
            , [<<"REST">>]}],
-  io:format("Q: ~p~n", [Query]),
   T = neo4j:transaction_begin(Conn, Query),
-  io:format("T: ~p~n", [T]),
   neo4j:transaction_commit(T).
