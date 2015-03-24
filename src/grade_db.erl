@@ -5,7 +5,7 @@
 -module(grade_db).
 
 %% API
--export([new/1, create_node/2, create_edge/4]).
+-export([new/1, create_node/2, create_edge/4, merge_edge/5]).
 
 -define(BASE_URI, <<"http://localhost:7474/db/data/">>).
 -define(digraph, grade_db_digraph). % atom tag for digraph storage
@@ -34,8 +34,19 @@ create_node({?digraph, Dg}, Node) ->
   digraph:add_vertex(Dg, Node, proplists:get_value(name, Node, undefined)).
 
 %% @doc Connects nodes with edge. Returns: edge
-create_edge(Db={?neo4j, _}, N1, N2, Name) ->
-  neo4j:create_relationship(N1, N2, grade_util:as_binary(Name)),
-  Db;
+create_edge({?neo4j, _}, N1, N2, Name) ->
+  neo4j:create_relationship(N1, N2, grade_util:as_binary(Name));
 create_edge({?digraph, Dg}, N1, N2, Name) ->
   digraph:add_edge(Dg, N1, N2, Name).
+
+merge_edge({?neo4j, Conn}, N1, Rel, N2, Data) ->
+  Query = [{<<"MERGE (f1:function {name: {n1}.name, mfa: {n1}.mfa}) -[:"
+            , (grade_util:as_binary(Rel))/binary
+            , "] -> (f2:function {name: {n2}.name, mfa: {n2}.mfa})\n",
+              "CREATE f1-[:", (grade_util:as_binary(Rel))/binary, " {trace}]->f2">>
+           , {[{<<"n1">>, N1}, {<<"n2">>, N2}, {<<"trace">>, Data}]}
+           , [<<"REST">>]}],
+  io:format("Q: ~p~n", [Query]),
+  T = neo4j:transaction_begin(Conn, Query),
+  io:format("T: ~p~n", [T]),
+  neo4j:transaction_commit(T).
