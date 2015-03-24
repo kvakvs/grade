@@ -8,7 +8,330 @@
   <script src="js/react.js"></script>
   <script src="js/JSXTransformer.js"></script>
   <script src="js/jquery-1.11.2.min.js"></script>
-  <script type="text/jsx" src="js/grade_index.jsx"></script>
+  <script src="js/d3.min.js"></script>
+  <script src="js/undersore.min.js"></script>
+  <!--<script type="text/jsx" src="js/grade_index.jsx"></script>-->
+
+  <style>
+
+
+    .node {
+      cursor: pointer;
+    }
+
+    .node circle {
+      fill: #fff;
+      stroke: steelblue;
+      stroke-width: 1.5px;
+    }
+
+    .node text {
+      font: 10px sans-serif;
+    }
+
+    .link {
+      fill: none;
+      stroke: #ccc;
+      stroke-width: 1.5px;
+    }
+
+
+  </style>
+  <script>
+
+    var margin = {top: 20, right: 120, bottom: 20, left: 120},
+        width = 960 - margin.right - margin.left,
+        height = 3000 - margin.top - margin.bottom;
+
+    var cluster, diagonal, svg, root;
+
+    var i = 0,
+        duration = 750;
+
+    function load_apps_and_functions(){
+      $.ajax({
+         url: "http://localhost:7474/db/data/cypher",
+         dataType: "json",
+         method: "POST",
+         data: {
+           "query":  "MATCH (n:application)-[r:contains]->(m:module) RETURN n, r, m ORDER BY n.name, m.name ",
+           "params": []
+         },
+         success: function (response) {
+           var nodes = {name: "root", children: []};
+
+           console.log(response);
+
+           _.each(response.data, function(element){
+             var from = element[0];
+             var rel = element[1];
+             var to = element[2];
+
+             var from_name = from.data.name;
+             var to_name = to.data.name;
+
+             var from_label = from.metadata.labels[0];
+             var to_label = to.metadata.labels[0];
+
+             var node = _.where(nodes.children, {name: from_name});
+             if(node.length === 0){
+               nodes.children.push({name: from_name, children: [], label: from_label});
+             } else {
+               node = node[0];
+               var child = _.where(node.children, {name: to_name});
+               if(child.length === 0){
+                 node.children.push({name: to_name, size: to.metadata.id, label: to_label})
+               }
+             }
+           });
+
+//           nodes = cluster.nodes(nodes);
+//           links = cluster.links(nodes);
+//
+//           var link = svg.selectAll(".link")
+//                   .data(links)
+//                   .enter().append("path")
+//                   .attr("class", "link")
+//                   .attr("d", diagonal);
+//
+//           var node = svg.selectAll(".node")
+//                   .data(nodes)
+//                   .enter().append("g")
+//                   .attr("class", "node")
+//                   .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
+//
+//           node.append("circle")
+//                   .attr("r", 4.5);
+//
+//           node.append("text")
+//                   .attr("dx", function(d) { return d.children ? -8 : 8; })
+//                   .attr("dy", 3)
+//                   .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
+//                   .text(function(d) { return d.name; });
+//
+           d3.select(self.frameElement).style("height", height + "px");
+
+           nodes.children.forEach(collapse);
+           root = nodes;
+           root.x0 = height / 2;
+           root.y0 = 0;
+           console.log(nodes);
+           update(root);
+         }
+      });
+    }
+
+    function collapse(d) {
+      if (d.children && d.children.length > 0) {
+        d._children = d.children;
+        d._children.forEach(collapse);
+        d.children = null;
+      }
+    }
+
+    function update(source) {
+      // Compute the new tree layout.
+      var nodes = cluster.nodes(root).reverse(),
+          links = cluster.links(nodes);
+
+      // Normalize for fixed-depth.
+      nodes.forEach(function (d) {
+        d.y = d.depth * 180;
+      });
+
+      // Update the nodes…
+      var node = svg.selectAll("g.node")
+              .data(nodes, function (d) {
+                                       return d.id || (d.id = ++i);
+                                     });
+
+      // Enter any new nodes at the parent's previous position.
+      var nodeEnter = node.enter().append("g")
+              .attr("class", "node")
+              .attr("transform", function (d) {
+                                            return "translate(" + source.y0 + "," + source.x0 + ")";
+                                          })
+              .on("click", click);
+
+      nodeEnter.append("circle")
+              .attr("r", 1e-6)
+              .style("fill", function (d) {
+                             return d._children ? "lightsteelblue" : "#fff";
+                           });
+
+      nodeEnter.append("text")
+              .attr("x", function (d) {
+                            return d.children || d._children ? -10 : 10;
+                          })
+              .attr("dy", ".35em")
+              .attr("text-anchor", function (d) {
+                      return d.children || d._children ? "end" : "start";
+                    })
+              .text(function (d) {
+                      return d.name;
+                    })
+              .style("fill-opacity", 1e-6);
+
+      // Transition nodes to their new position.
+      var nodeUpdate = node.transition()
+              .duration(duration)
+              .attr("transform", function (d) {
+                                             return "translate(" + d.y + "," + d.x + ")";
+                                           });
+
+      nodeUpdate.select("circle")
+              .attr("r", 4.5)
+              .style("fill", function (d) {
+                             return d._children ? "lightsteelblue" : "#fff";
+                           });
+
+      nodeUpdate.select("text")
+              .style("fill-opacity", 1);
+
+      // Transition exiting nodes to the parent's new position.
+      var nodeExit = node.exit().transition()
+              .duration(duration)
+              .attr("transform", function (d) {
+                                           return "translate(" + source.y + "," + source.x + ")";
+                                         })
+              .remove();
+
+      nodeExit.select("circle")
+              .attr("r", 1e-6);
+
+      nodeExit.select("text")
+              .style("fill-opacity", 1e-6);
+
+      // Update the links…
+      var link = svg.selectAll("path.link")
+              .data(links, function (d) {
+                                       return d.target.id;
+                                     });
+
+      // Enter any new links at the parent's previous position.
+      link.enter().insert("path", "g")
+              .attr("class", "link")
+              .attr("d", function (d) {
+                      var o = {x: source.x0, y: source.y0};
+                      return diagonal({source: o, target: o});
+                    });
+
+      // Transition links to their new position.
+      link.transition()
+              .duration(duration)
+              .attr("d", diagonal);
+
+      // Transition exiting nodes to the parent's new position.
+      link.exit().transition()
+              .duration(duration)
+              .attr("d", function (d) {
+                      var o = {x: source.x, y: source.y};
+                      return diagonal({source: o, target: o});
+                    })
+              .remove();
+
+      // Stash the old positions for transition.
+      nodes.forEach(function (d) {
+        d.x0 = d.x;
+        d.y0 = d.y;
+      });
+    }
+
+    // Toggle children on click.
+    function click(d) {
+      //console.log("click", d, d3.select(this));
+      if (d.children && d.children.length > 0) {
+        collapse(d);
+        update(d);
+      } else if (d._children && d._children.length > 0){
+        d.children = d._children;
+        d._children = null;
+        update(d);
+      } else {
+        update_node_calls(d, this);
+      }
+    }
+
+    function update_node_calls(node, svgnode) {
+      var circle = d3.select(svgnode).select('circle');
+      if (node.label === 'module') {
+        circle.style('fill', 'green');
+        //load module children
+        var app_name = node.parent.name;
+        var module_name = node.name;
+
+        var query = 'MATCH (:application {name: "' + app_name + '"})-[:contains]->(:module {name: "' + module_name + '"})-[:implements]->(f:function)\n'
+                    +
+                    'RETURN f ORDER BY f.mfa';
+        var params = {app_name: app_name, mname: module_name};
+
+        $.ajax({
+                 url:     "http://localhost:7474/db/data/cypher",
+                 dataType: "json",
+                 method:  "POST",
+                 data:    {
+                   "query":  query,
+                   "params": []
+                 },
+                 success: function (response) {
+                   node.children = [];
+                   _.each(response.data, function(element){
+                      var mfa = element[0].data.mfa;
+                     var id = element[0].metadata.id;
+                     node.children.push({name: mfa, size: id, id: ++i, label: "function"});
+                   });
+                   circle.style('fill', '#fff');
+
+                   update(node);
+                 }
+               });
+      } else if (node.label === 'function'){
+        circle.style('fill', 'green');
+        var mfa = node.name;
+
+        var query = 'MATCH (f1:function {mfa: "' + mfa + '"})-[:calls]->(f:function)\n'+
+                    'WHERE not f.mfa = f1.mfa RETURN f ORDER BY f.mfa';
+
+        $.ajax({
+                 url:     "http://localhost:7474/db/data/cypher",
+                 dataType: "json",
+                 method:  "POST",
+                 data:    {
+                   "query":  query,
+                   "params": []
+                 },
+                 success: function (response) {
+                   circle.style('fill', '#fff');
+                   node.children = [];
+                   _.each(response.data, function(element){
+                      var mfa = element[0].data.mfa;
+                     var id = element[0].metadata.id;
+                     node.children.push({name: mfa, size: id, id: ++i, label: "function"});
+                   });
+
+                   update(node);
+                 }
+               });
+      }
+    }
+
+    $(document).ready(function(){
+      cluster = d3.layout.tree()
+              .size([height, width]);
+
+      diagonal = d3.svg.diagonal()
+              .projection(function (d) { return [d.y, d.x]; });
+
+      svg = d3.select("body").append("svg")
+          .attr("width", width + margin.right + margin.left)
+          .attr("height", height + margin.top + margin.bottom)
+              .attr('style', 'overflow: scroll')
+          .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      load_apps_and_functions();
+    });
+  </script>
 </head>
 <body><div class="container-fluid">
 
@@ -54,7 +377,9 @@
     <p><input class="btn btn-warning" disabled="disabled" value="Clear all" />
     </p>
   </div>
-</div>
+  <div class="col-lg-10 col-lg-offset-1" id="graph">
+  </div>
+  </div>
 
 </div></body>
 </html>
