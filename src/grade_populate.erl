@@ -21,6 +21,12 @@ start() ->
 %% @doc Query xref about all modules in app, return modified database with new nodes
 add_app(Db, App) ->
   io:format("[grade] xref for app ~s~n", [App]),
+  case code:lib_dir(App) of
+    {error, Reason} -> io:format("~p", [{error, Reason}]);
+    Dir             ->
+      xref:add_application(?XREF, Dir)
+  end,
+  io:format("[grade] xref for app ~s~n", [App]),
   AppNode = grade_db:create_node(Db, [{name, App}, {type, 'app'}]),
 
   {ok, Modules} = xref:q(?XREF, "(Mod) '" ++ atom_to_list(App) ++ "'"),
