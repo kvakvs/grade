@@ -28,21 +28,21 @@ add_app(Db, App) ->
     Dir             -> xref:add_application(?XREF, Dir)
   end,
   io:format("[grade] xref for app ~s~n", [App]),
-  AppProps = [{name, App}, {type, 'app'}, {desc, App}],
+  AppProps = [{name, App}, {type, application}, {desc, App}],
   %grade_db:merge_node(Db, AppProps),
 
   {ok, Modules} = xref:q(?XREF, "(Mod) '" ++ atom_to_list(App) ++ "'"),
   lists:foreach(
     fun(MFold) ->
       ModNode = add_mod(Db, MFold),
-      grade_db:merge_edge(Db, AppProps, app_contains, ModNode, [])
+      grade_db:merge_edge(Db, AppProps, contains, ModNode, [])
     end, Modules).
 
 
 %% @doc Query xref about module, returns graph node for module
 add_mod(Db0, Module) ->
   io:format("[grade] xref for mod ~s~n", [Module]),
-  Props = [{name, Module}, {type, 'mod'}, {desc, Module}],
+  Props = [{name, Module}, {type, module}, {desc, Module}],
   grade_db:merge_node(Db0, Props),
 
   {ok, Funs} = xref:q(?XREF, "'" ++ atom_to_list(Module) ++ "' : Mod * F"),
@@ -57,7 +57,7 @@ add_fun(Db, ModuleNode, MFA) ->
 %% @private
 mfa_props({M, F, A}) ->
   [ {name, F}
-  , {type, 'fun'}
+  , {type, function}
   , {desc, <<(grade_util:as_binary(M))/binary
             , ":", (grade_util:as_binary(F))/binary
             , "/", (grade_util:as_binary(A))/binary>>}
