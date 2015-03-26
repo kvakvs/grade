@@ -9,7 +9,7 @@
   <script src="js/JSXTransformer.js"></script>
   <script src="js/jquery-1.11.2.min.js"></script>
   <script src="js/d3.min.js"></script>
-  <script src="js/undersore.min.js"></script>
+  <script src="js/underscore.min.js"></script>
   <!--<script type="text/jsx" src="js/grade_index.jsx"></script>-->
 
   <style>
@@ -260,7 +260,7 @@
         var app_name = node.parent.name;
         var module_name = node.name;
 
-        var query = 'MATCH (:application {name: "' + app_name + '"})-[:contains]->(:module {name: "' + module_name + '"})-[:implements]->(f:function)\n'
+        var query1 = 'MATCH (:application {name: "' + app_name + '"})-[:contains]->(:module {name: "' + module_name + '"})-[:implements]->(f:function)\n'
                     +
                     'RETURN f ORDER BY f.desc';
         var params = {app_name: app_name, mname: module_name};
@@ -270,7 +270,7 @@
                  dataType: "json",
                  method:  "POST",
                  data:    {
-                   "query":  query,
+                   "query":  query1,
                    "params": []
                  },
                  success: function (response) {
@@ -289,7 +289,7 @@
         circle.style('fill', 'green');
         var desc = node.name;
 
-        var query = 'MATCH (f1:function {desc: "' + desc + '"})-[:calls]->(f:function)\n'+
+        var query2 = 'MATCH (f1:function {desc: "' + desc + '"})-[:calls]->(f:function)\n'+
                     'WHERE not f.desc = f1.desc RETURN f ORDER BY f.desc';
 
         $.ajax({
@@ -297,7 +297,7 @@
                  dataType: "json",
                  method:  "POST",
                  data:    {
-                   "query":  query,
+                   "query":  query2,
                    "params": []
                  },
                  success: function (response) {
@@ -365,8 +365,8 @@
           <code>exit(whereis(grade_imp), kill).</code> in shell or just wait for
           it to finish.</p>
         <p>You can run this manually, if you wish:
-          <code>grade_populate:start().</code> and then
-          <code>grade_populate:add_app(your_app_name).</code></p>
+          <code>Db = grade_populate:start().</code> and then
+          <code>grade_populate:add_app(Db, your_app_name).</code></p>
       </div>
     </div>
 
